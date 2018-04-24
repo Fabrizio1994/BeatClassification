@@ -1,5 +1,3 @@
-import wfdb
-import os
 import numpy as np
 
 '''for signal_name in os.listdir('sample/mitdb'):
@@ -14,6 +12,10 @@ import numpy as np
 
 
 class Main:
+
+    def time2sample(self, time):
+        return round(time * 360)
+
     def update_window(self, window, rr_intervals, index):
         if index < len(rr_intervals) - 1:
             window[0] = rr_intervals[index - 1]
@@ -37,27 +39,28 @@ class Main:
 
         # INITIALIZATION
         self.update_window(window, rr_intervals, starting_index)
-        while current_index < len(rr_intervals):
+        while current_index < len(rr_intervals) - 1: #Excluding two beats at the end
+
             # RULE 1
-            cond1 = int(window[1]) < 214
+            cond1 = int(window[1]) < self.time2sample(0.6)
             cond2 = const2 * int(window[1]) < int(window[0])
-            if cond1 and cond2 :
+            if cond1 and cond2:
                 temp_prediction = ['VF']
                 self.update_window(window, rr_intervals, current_index + 1)
-                cond1 = int(window[0]) < 250
-                cond2 = int(window[1]) < 250
-                cond3 = int(window[2]) < 250
-                cond4 = int(window[0]) + int(window[1]) + int(window[2]) < 607
+                cond1 = int(window[0]) < self.time2sample(0.7)
+                cond2 = int(window[1]) < self.time2sample(0.7)
+                cond3 = int(window[2]) < self.time2sample(0.7)
+                cond4 = int(window[0]) + int(window[1]) + int(window[2]) < self.time2sample(1.7)
                 while ((cond1 and cond2 and cond3) or cond4) and (temp_index < len(rr_intervals) - 1):
                     if temp_index <= current_index:
                         temp_index = current_index + 1
                     else:
                         temp_index = temp_index + 1
                     self.update_window(window, rr_intervals, temp_index)
-                    cond1 = int(window[0]) < 250
-                    cond2 = int(window[1]) < 250
-                    cond3 = int(window[2]) < 250
-                    cond4 = int(window[0]) + int(window[1]) + int(window[2]) < 607
+                    cond1 = int(window[0]) < self.time2sample(0.7)
+                    cond2 = int(window[1]) < self.time2sample(0.7)
+                    cond3 = int(window[2]) < self.time2sample(0.7)
+                    cond4 = int(window[0]) + int(window[1]) + int(window[2]) < self.time2sample(1.7)
                     temp_prediction.append('VF')
 
                 if len(temp_prediction) < 4:
@@ -66,40 +69,43 @@ class Main:
                     prediction.extend(temp_prediction)
                     current_index = current_index + 1
                     self.update_window(window, rr_intervals, current_index)
+                    continue
 
             # RULE 2
             cond1 = const1 * int(window[1]) < int(window[0])
             cond2 = const1 * int(window[1]) < int(window[2])
-            cond3 = abs(int(window[0]) - int(window[1])) < 107
-            cond4 = int(window[0]) < 285
-            cond5 = int(window[1]) < 285
+            cond3 = abs(int(window[0]) - int(window[1])) < self.time2sample(0.3)
+            cond4 = int(window[0]) < self.time2sample(0.8)
+            cond5 = int(window[1]) < self.time2sample(0.8)
             cond6 = int(window[2]) > const3 * np.mean([int(window[0]), int(window[1])])
-            cond7 = abs(int(window[1]) - int(window[2])) < 107
-            cond8 = int(window[1]) < 285
-            cond9 = int(window[2]) < 285
+            cond7 = abs(int(window[1]) - int(window[2])) < self.time2sample(0.3)
+            cond8 = int(window[1]) < self.time2sample(0.8)
+            cond9 = int(window[2]) < self.time2sample(0.8)
             cond10 = int(window[0]) > const3 * np.mean([int(window[1]), int(window[2])])
-            if (cond1 and cond2) or (cond3 and (cond4 and cond5) and cond6) or (cond7 and (cond8 and cond9) and cond10):
+            if (cond1 and cond2) or (cond3 and cond4 and cond5 and cond6) or (cond7 and cond8 and cond9 and cond10):
                 prediction.append('PVC')
                 current_index = current_index + 1
                 self.update_window(window, rr_intervals, current_index)
+                continue
 
             # RULE 3
-            cond1 = int(window[1]) > 785
-            cond2 = int(window[1]) < 1071
-            cond3 = abs(int(window[0]) - int(window[1])) < 71
-            cond4 = abs(int(window[1]) - int(window[2])) < 71
+            cond1 = int(window[1]) > self.time2sample(2.2)
+            cond2 = int(window[1]) < self.time2sample(3.0)
+            cond3 = abs(int(window[0]) - int(window[1])) < self.time2sample(0.2)
+            cond4 = abs(int(window[1]) - int(window[2])) < self.time2sample(0.2)
 
             if (cond1 and cond2) and (cond3 or cond4):
                 prediction.append('BII')
                 current_index = current_index + 1
                 self.update_window(window, rr_intervals, current_index)
+                continue
 
             else:
                 prediction.append('N')
                 current_index = current_index + 1
                 self.update_window(window, rr_intervals, current_index)
 
-        out_file = open(patient + '_results.tsv', 'w')
+        out_file = open('results/' + patient + '_results.tsv', 'w')
         for value in prediction:
             out_file.write(value + '\n')
 
