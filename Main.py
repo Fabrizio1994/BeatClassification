@@ -1,4 +1,5 @@
 import numpy as np
+from evaluation import evaluation
 
 '''for signal_name in os.listdir('sample/mitdb'):
     if signal_name.endswith('.atr'):
@@ -69,7 +70,7 @@ class Main:
                     prediction.extend(temp_prediction)
                     current_index = current_index + 1
                     self.update_window(window, rr_intervals, current_index)
-                    continue
+
 
             # RULE 2
             cond1 = const1 * int(window[1]) < int(window[0])
@@ -114,4 +115,6 @@ class Main:
 
 
 
-
+if __name__ == '__main__':
+    eval = evaluation()
+    eval.eval_rr_intervals()
