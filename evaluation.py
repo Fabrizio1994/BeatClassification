@@ -37,7 +37,15 @@ class evaluation:
         non_beat_annotation = ['x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', 's', 'T', '*', 'D', '=', '"',
                                '@']
 
-        out_file = open('sensitivity.tsv', 'a')
+        sens_file = open('sensitivity.tsv', 'a')
+        prec_file = open('precision.tsv', 'a')
+        sens_file.write("|patient|")
+        prec_file.write("|patient|")
+        for cat in category:
+            sens_file.write("%s|" % cat)
+            prec_file.write("%s|" % cat)
+        sens_file.write("\n")
+        prec_file.write("\n")
         for patient in os.listdir('original_annotations'):
             results = []
             if patient.endswith('.atr'):
@@ -58,15 +66,24 @@ class evaluation:
                 end_index = len(cleaned_symbols) - 1
                 cleaned_symbols = cleaned_symbols[2:end_index]
                 evaluation = self.evaluate_prediction(category, cleaned_symbols, evaluation, results)
-
-                out_file.write('|%s|' % patient)
+                sens_file.write('|%s|' % patient)
+                prec_file.write('|%s|' % patient)
                 for categ in evaluation.keys():
-                    if (evaluation[categ]['TP'] + evaluation[categ]['FN']) != 0:
-                        se = evaluation[categ]['TP']/(evaluation[categ]['TP'] + evaluation[categ]['FN'])
+                    tp = evaluation[categ]['TP']
+                    fn = evaluation[categ]['FN']
+                    fp = evaluation[categ]['FP']
+                    if tp == 0 and fn == 0:
+                        se = "null"
                     else:
-                        se = 0.0
-                    out_file.write('%s|' % (str(se)))
-                out_file.write('\n')
+                        se = tp / (tp + fn)
+                    if tp == 0 and fp == 0:
+                        prec = "null"
+                    else:
+                        prec = tp /(tp + fp)
+                    sens_file.write('%s|' % (str(se)))
+                    prec_file.write('%s|' % (str(prec)))
+                sens_file.write('\n')
+                prec_file.write('\n')
 
     def evaluate_prediction(self, category, cleaned_symbols, evaluation, results):
         for j in range(len(cleaned_symbols) - 1):
