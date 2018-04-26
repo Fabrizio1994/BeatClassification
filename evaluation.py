@@ -35,7 +35,7 @@ class evaluation:
                                 "(VT\x00"]'''
 
         non_beat_annotation = ['x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', 's', 'T', '*', 'D', '=', '"',
-                               '@']
+                               '@', '+']
 
         sens_file = open('sensitivity.tsv', 'a')
         prec_file = open('precision.tsv', 'a')
@@ -65,30 +65,45 @@ class evaluation:
                         cleaned_symbols[j] = 'N'
                 end_index = len(cleaned_symbols) - 1
                 cleaned_symbols = cleaned_symbols[2:end_index]
-                evaluation = self.evaluate_prediction(category, cleaned_symbols, evaluation, results)
+                print(patient)
+                evaluation = self.evaluate_prediction(category, cleaned_symbols, evaluation, results, patient, temp_values)
                 sens_file.write('|%s|' % patient)
                 prec_file.write('|%s|' % patient)
                 for categ in evaluation.keys():
                     tp = evaluation[categ]['TP']
                     fn = evaluation[categ]['FN']
                     fp = evaluation[categ]['FP']
-                    if tp == 0 and fn == 0:
+                    if tp == 0 and fn == 0 and fp == 0:
                         se = "null"
-                    else:
-                        se = tp / (tp + fn)
-                    if tp == 0 and fp == 0:
                         prec = "null"
                     else:
-                        prec = tp /(tp + fp)
+                        if tp + fn == 0:
+                            se = 0
+                        else:
+                            se = tp / (tp + fn)
+                        if tp + fp == 0:
+                            prec = 0
+                        else:
+                            prec = tp /(tp + fp)
                     sens_file.write('%s|' % (str(se)))
                     prec_file.write('%s|' % (str(prec)))
                 sens_file.write('\n')
                 prec_file.write('\n')
 
-    def evaluate_prediction(self, category, cleaned_symbols, evaluation, results):
-        for j in range(len(cleaned_symbols) - 1):
-            label = cleaned_symbols[j]
+    def evaluate_prediction(self, category, cleaned_symbols, evaluation, results, patient, temp_values):
+        j = 0
+        k = 0
+        while j<(len(cleaned_symbols) - 1) and k < (len(cleaned_symbols) - 1):
+            label = cleaned_symbols[k]
             pred = results[j]
+            if label in [ '[', '!', ']'] and pred != 'VF':
+                evaluation['VF']['FN'] += 1
+                k += 1
+                continue
+            if label == 'BII' and pred != 'BII':
+                evaluation['BII']['FN'] += 1
+                k += 1
+                continue
             if label in category[pred]:
                 evaluation[pred]['TP'] += 1
             else:
@@ -96,6 +111,8 @@ class evaluation:
                 for categ in category.keys():
                     if label in category[categ]:
                         evaluation[categ]['FN'] += 1
+            j += 1
+            k += 1
         return evaluation
 
 

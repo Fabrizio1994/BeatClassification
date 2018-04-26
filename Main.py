@@ -1,15 +1,8 @@
 import numpy as np
-from evaluation import evaluation
+import wfdb
+import os
 
-'''for signal_name in os.listdir('sample/mitdb'):
-    if signal_name.endswith('.atr'):
-        cleaned_name = signal_name.replace('.atr', '')
-        annotation = wfdb.rdann('sample/mitdb/' + cleaned_name, 'atr')
-        peaks = annotation.sample
-        peaks = np.diff(peaks)
-        file = open(cleaned_name + '_peaks.tsv', 'a')
-        for peak in peaks:
-            file.write('%s\n' % (str(peak)))'''
+
 
 
 class Main:
@@ -99,8 +92,6 @@ class Main:
                 prediction.append('BII')
                 current_index = current_index + 1
                 self.update_window(window, rr_intervals, current_index)
-                continue
-
             else:
                 prediction.append('N')
                 current_index = current_index + 1
@@ -116,5 +107,12 @@ class Main:
 
 
 if __name__ == '__main__':
-    eval = evaluation()
-    eval.eval_rr_intervals()
+    for signal_name in os.listdir('sample/mitdb'):
+        if signal_name.endswith('.atr'):
+            cleaned_name = signal_name.replace('.atr', '')
+            annotation = wfdb.rdann('sample/mitdb/' + cleaned_name, 'atr')
+            peaks = annotation.sample
+            peaks = np.diff(peaks)
+            file = open('peaks/' + cleaned_name + '_peaks.tsv', 'a')
+            for peak in peaks:
+                file.write('%s\n' % (str(peak)))
