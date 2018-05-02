@@ -4,19 +4,16 @@ import os
 class evaluation:
 
     def initialize_map(self, category_map):
-
         evaluation = {}
         for symbol in category_map.keys():
             evaluation[symbol] = {}
             evaluation[symbol]['TP'] = 0
             evaluation[symbol]['FP'] = 0
             evaluation[symbol]['FN'] = 0
-
         evaluation['N'] = {}
         evaluation['N']['TP'] = 0
         evaluation['N']['FP'] = 0
         evaluation['N']['FN'] = 0
-
         return evaluation
 
 
@@ -70,16 +67,10 @@ class evaluation:
                 symbols = annotations.symbol
                 aux_symbols = annotations.aux_note
                 cleaned_symbols = self.clean_symbols(symbols, aux_symbols)
-
                 end_index = len(cleaned_symbols) - 1
                 cleaned_symbols = cleaned_symbols[2:end_index]
                 print(patient)
-
-
                 evaluation = self.evaluate_prediction(cleaned_symbols, evaluation, predictions)
-
-
-
                 sensitivity_file.write('|%s|' % patient)
                 precision_file.write('|%s|' % patient)
                 for categ in evaluation.keys():
