@@ -40,14 +40,11 @@ class Main:
                 if vf_index < len(rr_intervals) - 1:
                     RR1, RR2, RR3 = self.update_window(rr_intervals, vf_index)
                     condition = self.vf_condition(RR1, RR2, RR3)
-                    while condition:
+                    while condition and vf_index < len(rr_intervals) - 1:
                         vf_prediction.append('VF')
                         vf_index = vf_index + 1
-                        if vf_index < len(rr_intervals) - 1:
-                            RR1, RR2, RR3 = self.update_window(rr_intervals, vf_index)
-                            condition = self.vf_condition(RR1, RR2, RR3)
-                        else:
-                            continue
+                        RR1, RR2, RR3 = self.update_window(rr_intervals, vf_index)
+                        condition = self.vf_condition(RR1, RR2, RR3)
                 if len(vf_prediction) >= 4:
                     prediction.extend(vf_prediction)
                     current_index = vf_index
@@ -116,5 +113,5 @@ class Main:
                 file.close()
 
 if __name__ == '__main__':
-   m = Main()
-   m.predict()
+  eval = evaluation()
+  eval.eval_rr_intervals()
