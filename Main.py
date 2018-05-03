@@ -21,6 +21,7 @@ class Main:
         const2 = 1.8
         const3 = 1.2
         rr_intervals = []
+        # excluding first interval
         current_index = 1
         prediction = []
 
@@ -93,25 +94,29 @@ class Main:
         return (cond1 and cond2 and cond3) or cond4
 
     def predict(self):
-        for name in os.listdir("original_annotations"):
+        for name in sorted(os.listdir("original_annotations")):
             if name.endswith(".atr"):
                 patient = name.replace(".atr","")
-                peaks_file = open("peaks/" + patient + "_peaks.tsv", "r")
+                peaks_file = open("rr_intervals/" + patient + ".tsv", "r")
                 self.find_beat_annotation(peaks_file, patient)
 
-    def write_peaks(self):
-        ann_loc = "sample/mitdb/"
-        peaks_loc = "peaks/"
-        for name in os.listdir("original_annotations"):
+    def write_rr(self):
+        for name in sorted(os.listdir("original_annotations")):
             if name.endswith(".atr"):
-                patient = name.replace(".atr","")
-                file = open(peaks_loc + patient + "_peaks.tsv", "w")
-                ann = wfdb.rdann(ann_loc + patient, "atr")
-                peaks = np.diff(ann.sample)
-                for p in peaks:
-                    file.write("%s\n" % str(p))
-                file.close()
+                patient = name.replace(".atr", "")
+                file = open("peaks/" + patient + "_1.csv", "r")
+                peaks = []
+                for line in file:
+                    line = line.replace("\n", "")
+                    peaks.append(int(line))
+                rr = np.diff(peaks)
+                file_w = open("rr_intervals/" + patient + ".tsv", "w")
+                for r in rr:
+                    file_w.write("%s\n" % str(r))
+
 
 if __name__ == '__main__':
-  eval = evaluation()
-  eval.eval_rr_intervals()
+    eval = evaluation()
+    eval.eval_rr_intervals()
+
+

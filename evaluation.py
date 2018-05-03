@@ -31,7 +31,7 @@ class evaluation:
                 cleaned_symbols.append('PVC')
             if original_symbols[j] not in ['[', '!' ']', 'BII', 'V']:
                 cleaned_symbols.append('N')
-        return cleaned_symbols
+        return cleaned_symbols[2:len(cleaned_symbols)]
 
     def eval_rr_intervals(self):
 
@@ -39,23 +39,18 @@ class evaluation:
                     'VF': ['[', '!', ']'],
                     'BII': ['BII'],
                     'N': ['N']}
-        temp_values = ['V', '[', '!', ']', 'BII', 'N']
-
-        non_beat_annotations = ['x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', 's', 'T', '*', 'D', '=', '"',
-                               '@', '+']
-
         sensitivity_file = open('sensitivity.tsv', 'a')
         precision_file = open('precision.tsv', 'a')
         sensitivity_file.write("|patient|")
         precision_file.write("|patient|")
-        for cat in category:
+        for cat in sorted(category.keys()):
             sensitivity_file.write("%s|" % cat)
             precision_file.write("%s|" % cat)
         sensitivity_file.write("\n")
         precision_file.write("\n")
 
 
-        for patient in os.listdir('original_annotations'):
+        for patient in sorted(os.listdir('original_annotations')):
             predictions = []
             if patient.endswith('.atr'):
                 patient = patient.replace('.atr', '')
@@ -73,7 +68,7 @@ class evaluation:
                 evaluation = self.evaluate_prediction(cleaned_symbols, evaluation, predictions)
                 sensitivity_file.write('|%s|' % patient)
                 precision_file.write('|%s|' % patient)
-                for categ in evaluation.keys():
+                for categ in sorted(evaluation.keys()):
                     tp = evaluation[categ]['TP']
                     fn = evaluation[categ]['FN']
                     fp = evaluation[categ]['FP']
