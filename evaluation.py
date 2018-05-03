@@ -19,7 +19,7 @@ class evaluation:
 
     def clean_symbols(self, original_symbols, aux_symbols):
         cleaned_symbols = []
-        non_beat_annotation = ['x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', 's', 'T', '*', 'D', '=', '"',
+        non_beat_annotation = ['x', '(', ')', 'p', 't', 'u', '`', "'", '^', '|', '~', 's', 'T', '*', 'D', '=', '"',
                                '@']
         original_symbols = list(filter(lambda x: x not in non_beat_annotation, original_symbols))
         for j in range(len(original_symbols)):
@@ -62,8 +62,6 @@ class evaluation:
                 symbols = annotations.symbol
                 aux_symbols = annotations.aux_note
                 cleaned_symbols = self.clean_symbols(symbols, aux_symbols)
-                end_index = len(cleaned_symbols) - 1
-                cleaned_symbols = cleaned_symbols[2:end_index]
                 print(patient)
                 evaluation = self.evaluate_prediction(cleaned_symbols, evaluation, predictions)
                 sensitivity_file.write('|%s|' % patient)
@@ -100,17 +98,10 @@ class evaluation:
                 j += 1
                 k += 1
             else:
-                if pred == 'BII':
-                    evaluation[pred]['FP'] += 1
-                    k += 1
-                elif label == 'BII':
-                    evaluation[label]['FN'] += 1
-                    j += 1
-                else:
-                    evaluation[pred]['FP'] += 1
-                    evaluation[label]['FN'] += 1
-                    j += 1
-                    k += 1
+                evaluation[pred]['FP'] += 1
+                evaluation[label]['FN'] += 1
+                j += 1
+                k += 1
         return evaluation
 
 
