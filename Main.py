@@ -1,21 +1,60 @@
 import numpy as np
 import wfdb
 import os
-from evaluation import evaluation
+from Evaluation import Evaluation
 
 
 class Main:
+    """
+        Parameters
+        ----------
+         time : float
+            A float value that represent the time.
 
+        Returns
+        -------
+        The method converts the time value (float) into a sample value (int).
+
+    """
     def time2sample(self, time):
         return round(time * 360)
 
+    """
+        Parameters
+        ----------
+         rr_intervals : list(int)
+            A list of strings representing the rr_intervals value for a certain signal
+         index: int
+            An integer value representing the index of the sliding window we are moving on. It indicates the middle RR 
+            interval of the window, that contains three RR intervals.
+
+        Returns
+        -------
+        The method updates the values of the current window moving them to the desired index.  
+
+    """
     def update_window(self, rr_intervals, index):
             RR1 = rr_intervals[index - 1]
             RR2 = rr_intervals[index]
             RR3 = rr_intervals[index + 1]
             return RR1, RR2, RR3
 
-    def find_beat_annotation(self, peaks_file, patient):
+    """
+        Parameters
+        ----------
+         rr_interval_file : file
+            A file containing the rr_intervals value for a certain signal separated by \n.
+         patient: str
+            A string value that represents the patient we want to work on.
+         database: str
+            The database name. For the moment just 'mitdb' or 'incartdb'
+
+        Returns
+        -------
+        The method updates the values of the current window moving them to the desired index.  
+
+    """
+    def find_beat_annotation(self, rr_interval_file, patient, database):
         print(patient)
         const1 = 1.15
         const2 = 1.8
@@ -25,7 +64,7 @@ class Main:
         current_index = 1
         prediction = []
 
-        for rr_interval in peaks_file:
+        for rr_interval in rr_interval_file:
             rr_interval = rr_interval.replace('\n', '')
             rr_intervals.append(int(rr_interval))
 
@@ -82,7 +121,7 @@ class Main:
                 prediction.append('N')
             current_index = current_index + 1
 
-        out_file = open('results/' + patient + '_results.tsv', 'w')
+        out_file = open('labels/' + database + '/' + patient + '.tsv', 'w')
         for value in prediction:
             out_file.write(value + '\n')
 
@@ -93,30 +132,128 @@ class Main:
         cond4 = RR1 + RR2 + RR3 < self.time2sample(1.7)
         return (cond1 and cond2 and cond3) or cond4
 
-    def predict(self):
-        for name in sorted(os.listdir("original_annotations")):
-            if name.endswith(".atr"):
-                patient = name.replace(".atr","")
-                peaks_file = open("rr_intervals/" + patient + ".tsv", "r")
-                self.find_beat_annotation(peaks_file, patient)
+    """
+    
+        Parameters
+        ----------
+        database : str
+            The database name. For the moment just 'mitdb' or 'incartdb'
+        
+        Returns
+        -------
+        The method creates tsv files containing labels of the RR intervals for each signal.
+        
+    """
+    def write_labels(self, database):
+        for name in sorted(os.listdir('database/mitdb/original_annotations')):
+            if name.endswith('.atr'):
+                patient = name.replace('.atr', '')
+                rr_interval_file = open('rr_intervals/' + database + '/' + patient + '.tsv', 'r')
+                self.find_beat_annotation(rr_interval_file, patient, database)
 
-    def write_rr(self):
-        for name in sorted(os.listdir("original_annotations")):
+    """
+    
+        Parameters
+        ----------
+        database : str
+            The database name. For the moment just 'mitdb' or 'incartdb'
+        
+        Returns
+        -------
+        The method creates tsv files representing the RR intervals for each signal.
+        
+    """
+    def write_rr(self, database):
+        for name in sorted(os.listdir('database/' + database + '/original_annotations')):
             if name.endswith(".atr"):
                 patient = name.replace(".atr", "")
-                file = open("peaks/" + patient + "_1.csv", "r")
-                peaks = []
+                file = open("peaks/" + database + '/' + patient + ".tsv", "r")
+                peaks_locations = []
                 for line in file:
                     line = line.replace("\n", "")
-                    peaks.append(int(line))
-                rr = np.diff(peaks)
-                file_w = open("rr_intervals/" + patient + ".tsv", "w")
-                for r in rr:
-                    file_w.write("%s\n" % str(r))
+                    peaks_locations.append(int(line))
+                rr_intervals = np.diff(peaks_locations)
+                file_w = open('rr_intervals/' + database + '/' + patient + ".tsv", "w")
+                for rr_interval in rr_intervals:
+                    file_w.write("%s\n" % str(rr_interval))
+        self.write_labels(database)
 
+    """
+    
+        Parameters
+        ----------
+        database : str
+            The database name. For the moment just 'mitdb' or 'incartdb'
+            
+        Returns
+        -------
+        The method creates tsv files representing the location of R-Peaks for each signal.
+
+    """
+    def write_peaks(self, database):
+        for name in sorted(os.listdir('database/' + database + '/cleaned_annotations')):
+            if name.endswith('.atr'):
+                patient = name.replace('.atr', '')
+                annotations = wfdb.rdann('database/' + database + '/cleaned_annotations/' + patient, 'atr')
+                file = open('peaks/' + database + '/' + patient + '.tsv', 'w')
+                for val in annotations.sample:
+                    file.write('%s\n' % str(val))
+        self.write_rr(database)
+
+    """
+    
+       Parameters
+       ----------
+       sample_name : str
+        The path to reach the patient annotation file. 
+       NON_BEAT_ANN : str[] 
+        Array of strings each of which represent a non beat annotation. 
+        
+       Returns
+       -------
+       The method returns two arrays containing the beat annotation locations and the beat annotation symbols.
+
+    """
+    def remove_non_beat(self, sample_name, NON_BEAT_ANN):
+        annotation = wfdb.rdann(sample_name, "atr")
+        beat_ann = []
+        beat_sym = []
+        samples = annotation.sample
+        symbols = annotation.symbol
+        for j in range(len(annotation.sample)):
+            if symbols[j] not in NON_BEAT_ANN:
+                beat_ann.append(samples[j])
+                beat_sym.append(symbols[j])
+        return beat_ann, beat_sym
+
+    """
+    
+       Parameters
+       ----------
+       database : str
+        The database name. For the moment just 'mitdb' or 'incartdb'       
+
+       Returns
+       -------
+       The method creates new annotation file (.atr), cleaned from the non-beat annotations, for each signal.
+
+    """
+    def remove_non_beat_for_all(self, database):
+        NON_BEAT_ANN = ['x', '(', ')', 'p', 't', 'u', '`', '\'', '^', '|', '~', '+', 's', 'T', '*', 'D',
+                        '=', '"', '@', '[', ']']
+        for signal_name in os.listdir('database/' + database + '/original_annotations'):
+            if signal_name.endswith(".atr"):
+                name = signal_name.replace(".atr", "")
+                print(name)
+                beat_ann, beat_symbol = self.remove_non_beat('database/' + database + '/original_annotations/' + name,
+                                                             NON_BEAT_ANN)
+                wfdb.wrann(name, "atr", sample=np.asarray(beat_ann), symbol=np.asarray(beat_symbol))
 
 if __name__ == '__main__':
-    eval = evaluation()
-    eval.eval_rr_intervals()
+    eval = Evaluation()
+    m = Main()
+    #m.remove_non_beat_for_all()
 
+    #m.write_peaks('mitdb')
 
+    eval.eval_rr_intervals('mitdb')
