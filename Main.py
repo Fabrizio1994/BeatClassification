@@ -17,7 +17,9 @@ class Main:
 
     """
     def time2sample(self, time):
-        return round(time * 360)
+        # mitdb = 360
+        # incartdb = 257
+        return round(time * 257)
 
     """
         Parameters
@@ -48,13 +50,16 @@ class Main:
             A string value that represents the patient we want to work on.
          database: str
             The database name. For the moment just 'mitdb' or 'incartdb'
+         approach: str
+            The chosen approach. Form the moment just 'annotation' or 'pantompkins' or 'rpeak'
 
         Returns
         -------
-        The method updates the values of the current window moving them to the desired index.  
+        The method updates the values of the current window moving them to the desired index. Then, it writes an 
+        output file, containing a label assigned to each RR-interval.
 
     """
-    def find_beat_annotation(self, rr_interval_file, patient, database):
+    def find_beat_annotation(self, rr_interval_file, patient, database, approach):
         print(patient)
         const1 = 1.15
         const2 = 1.8
@@ -83,8 +88,9 @@ class Main:
                     while condition and vf_index < len(rr_intervals) - 1:
                         vf_prediction.append('VF')
                         vf_index = vf_index + 1
-                        RR1, RR2, RR3 = self.update_window(rr_intervals, vf_index)
-                        condition = self.vf_condition(RR1, RR2, RR3)
+                        if vf_index < len(rr_intervals) - 1:
+                            RR1, RR2, RR3 = self.update_window(rr_intervals, vf_index)
+                            condition = self.vf_condition(RR1, RR2, RR3)
                 if len(vf_prediction) >= 4:
                     prediction.extend(vf_prediction)
                     current_index = vf_index
@@ -121,7 +127,7 @@ class Main:
                 prediction.append('N')
             current_index = current_index + 1
 
-        out_file = open('labels/' + database + '/' + patient + '.tsv', 'w')
+        out_file = open('labels/' + approach + '/' + database + '/' + patient + '.tsv', 'w')
         for value in prediction:
             out_file.write(value + '\n')
 
@@ -138,18 +144,20 @@ class Main:
         ----------
         database : str
             The database name. For the moment just 'mitdb' or 'incartdb'
+        approach: str
+            The chosen approach. Form the moment just 'annotation' or 'pantompkins' or 'rpeak'
         
         Returns
         -------
         The method creates tsv files containing labels of the RR intervals for each signal.
         
     """
-    def write_labels(self, database):
-        for name in sorted(os.listdir('database/mitdb/original_annotations')):
+    def write_labels(self, database, approach):
+        for name in sorted(os.listdir('database/' + database + '/original_annotations')):
             if name.endswith('.atr'):
                 patient = name.replace('.atr', '')
-                rr_interval_file = open('rr_intervals/' + database + '/' + patient + '.tsv', 'r')
-                self.find_beat_annotation(rr_interval_file, patient, database)
+                rr_interval_file = open('rr_intervals/' + approach + '/' + database + '/' + patient + '.tsv', 'r')
+                self.find_beat_annotation(rr_interval_file, patient, database, approach)
 
     """
     
@@ -157,26 +165,27 @@ class Main:
         ----------
         database : str
             The database name. For the moment just 'mitdb' or 'incartdb'
+        approach: str
+            The chosen approach. Form the moment just 'annotation' or 'pantompkins' or 'rpeak'
         
         Returns
         -------
         The method creates tsv files representing the RR intervals for each signal.
         
     """
-    def write_rr(self, database):
+    def write_rr(self, database, approach):
         for name in sorted(os.listdir('database/' + database + '/original_annotations')):
             if name.endswith(".atr"):
                 patient = name.replace(".atr", "")
-                file = open("peaks/" + database + '/' + patient + ".tsv", "r")
+                file = open('peaks/' + approach + '/' + database + '/' + patient + ".tsv", "r")
                 peaks_locations = []
                 for line in file:
                     line = line.replace("\n", "")
                     peaks_locations.append(int(line))
                 rr_intervals = np.diff(peaks_locations)
-                file_w = open('rr_intervals/' + database + '/' + patient + ".tsv", "w")
+                file_w = open('rr_intervals/' + approach + '/' + database + '/' + patient + ".tsv", "w")
                 for rr_interval in rr_intervals:
                     file_w.write("%s\n" % str(rr_interval))
-        self.write_labels(database)
 
     """
     
@@ -184,21 +193,22 @@ class Main:
         ----------
         database : str
             The database name. For the moment just 'mitdb' or 'incartdb'
+        approach: str
+            The chosen approach. Form the moment just 'annotation' or 'pantompkins' or 'rpeak'
             
         Returns
         -------
         The method creates tsv files representing the location of R-Peaks for each signal.
 
     """
-    def write_peaks(self, database):
+    def write_peaks(self, database, approach):
         for name in sorted(os.listdir('database/' + database + '/cleaned_annotations')):
             if name.endswith('.atr'):
                 patient = name.replace('.atr', '')
                 annotations = wfdb.rdann('database/' + database + '/cleaned_annotations/' + patient, 'atr')
-                file = open('peaks/' + database + '/' + patient + '.tsv', 'w')
+                file = open('peaks/' + approach + '/' + database + '/' + patient + '.tsv', 'w')
                 for val in annotations.sample:
                     file.write('%s\n' % str(val))
-        self.write_rr(database)
 
     """
     
@@ -244,16 +254,29 @@ class Main:
         for signal_name in os.listdir('database/' + database + '/original_annotations'):
             if signal_name.endswith(".atr"):
                 name = signal_name.replace(".atr", "")
-                print(name)
-                beat_ann, beat_symbol = self.remove_non_beat('database/' + database + '/original_annotations/' + name,
-                                                             NON_BEAT_ANN)
-                wfdb.wrann(name, "atr", sample=np.asarray(beat_ann), symbol=np.asarray(beat_symbol))
+                if name != 'I04' and name != 'I17' and name != 'I35' and name != 'I44' and name != 'I57' and \
+                                name != 'I72' and name != 'I74':
+                    print(name)
+                    beat_ann, beat_symbol = self.remove_non_beat('database/' + database + '/original_annotations/' + name,
+                                                                 NON_BEAT_ANN)
+                    wfdb.wrann(name, 'atr',
+                               sample=np.asarray(beat_ann), symbol=np.asarray(beat_symbol))
 
 if __name__ == '__main__':
     eval = Evaluation()
     m = Main()
-    #m.remove_non_beat_for_all()
+    #database = ['incartdb', 'mitdb']
+    database = 'mitdb'
+    #approach = ['annotation', 'pantompkins', 'rpeak']
+    approach = 'pantompkins'
+    #m.remove_non_beat_for_all(database)
 
-    #m.write_peaks('mitdb')
 
-    eval.eval_rr_intervals('mitdb')
+    ### CALL THIS METHOD ONLY FOR ANNOTATION APPROACH ###
+    #m.write_peaks(database, approach)
+
+
+
+    m.write_rr(database, approach)
+    m.write_labels(database, approach)
+    eval.eval_rr_intervals(database, approach)

@@ -84,14 +84,14 @@ class Evaluation:
         sensitivity and precision for each signal with respect to the categories we are working on.
 
     """
-    def eval_rr_intervals(self, database):
+    def eval_rr_intervals(self, database, approach):
 
         category = {'PVC': ['V'],
                     'VF': ['[', '!', ']'],
                     'BII': ['BII'],
                     'N': ['N']}
-        sensitivity_file = open('sensitivity.tsv', 'a')
-        precision_file = open('precision.tsv', 'a')
+        sensitivity_file = open('results/' + database + '/' + approach + '_sensitivity.tsv', 'a')
+        precision_file = open('results/' + database + '/' + approach + '_precision.tsv', 'a')
         sensitivity_file.write("|patient|")
         precision_file.write("|patient|")
         for cat in sorted(category.keys()):
@@ -104,7 +104,7 @@ class Evaluation:
             if patient.endswith('.atr'):
                 patient = patient.replace('.atr', '')
                 annotations = wfdb.rdann('database/' + database + '/original_annotations/' + patient, 'atr')
-                file = open('labels/' + database + '/' + patient + '.tsv', 'r')
+                file = open('labels/' + approach + '/' + database + '/' + patient + '.tsv', 'r')
                 for value in file:
                     predictions.append(value.replace('\n', ''))
                 evaluation_map = self.initialize_map(category)
